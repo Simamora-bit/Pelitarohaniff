@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
+import { requestPasswordRecovery } from '@netlify/identity';
 import { storageService } from '../services/storageService';
 import { UserAccount } from '../types';
 
@@ -81,8 +82,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       return;
     }
 
-    if (regPassword.length < 5) {
-      setErrorMessage('Kata sandi minimal 5 karakter untuk keamanan.');
+    if (regPassword.length < 8) {
+      setErrorMessage('Kata sandi minimal 8 karakter untuk keamanan.');
       return;
     }
 
@@ -101,6 +102,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           onSuccess(res.user!);
           onClose();
         }, 600);
+      } else if (res.success) {
+        setSuccessMessage(res.message);
       } else {
         setErrorMessage(res.message);
       }
@@ -203,9 +206,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             </motion.div>
           )}
 
+            {mode === 'login' && <button type="button" disabled={isLoading} className="mb-4 text-sm text-gold underline" onClick={async () => {
+            if (!loginEmail.trim()) { setErrorMessage('Isi email di formulir masuk terlebih dahulu.'); return; }
+            setIsLoading(true);
+            try { await requestPasswordRecovery(loginEmail.trim()); setSuccessMessage('Jika akun terdaftar, tautan pemulihan dikirim ke email Anda.'); setErrorMessage(''); }
+            catch { setErrorMessage('Email pemulihan belum dapat dikirim. Silakan coba lagi.'); }
+            finally { setIsLoading(false); }
+          }}>Lupa kata sandi?</button>}
           {/* Forms */}
           {mode === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-white/70 mb-1.5">
                   Email

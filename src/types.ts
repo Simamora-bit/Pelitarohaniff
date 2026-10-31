@@ -31,7 +31,6 @@ export interface UserAccount {
   id: string;
   name: string;
   email: string;
-  password?: string; // stored locally for prototype auth
   role: UserRole;
   createdAt: string;
 }

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { askSpiritualAI, searchBibleVerse } from './services/geminiService';
 import { ContentItem, AppConfig, UserAccount, ContentCategory, VideoItem, VideoCategory } from './types';
+import { onAuthChange, updateUser, acceptInvite } from '@netlify/identity';
 import { storageService, getYoutubeThumbnail } from './services/storageService';
 import { AuthModal } from './components/AuthModal';
 import { AdminDashboard } from './components/AdminDashboard';
@@ -75,6 +76,7 @@ export default function App() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const searchEndRef = useRef<HTMLDivElement>(null);
 
+  const [syncError, setSyncError] = useState(false);
   const isAdmin = currentUser?.role === 'admin';
 
   // Sync online data from server on app load
@@ -89,11 +91,35 @@ export default function App() {
         setContentList(onlineContent);
         setAppConfig(onlineConfig);
         setVideosList(onlineVideos);
+        setSyncError(false);
       } catch (err) {
-        console.error('Failed to sync online data:', err);
+        setSyncError(true);
       }
     }
     syncOnlineData();
+    const timer = window.setInterval(syncOnlineData, 5000);
+    const refresh = () => { if (document.visibilityState === 'visible') syncOnlineData(); };
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); window.removeEventListener('online', refresh); };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const restore = () => storageService.restoreSession().then(setCurrentUser).catch(() => setCurrentUser(null));
+    storageService.initializeAuth().then(async result => {
+      if (cancelled) return;
+      if (result?.type === 'recovery' || result?.type === 'invite') {
+        const password = window.prompt('Masukkan kata sandi baru (minimal 8 karakter):');
+        if (!password || password.length < 8) { alert('Kata sandi belum diubah. Buka kembali tautan email untuk melanjutkan.'); return; }
+        if (result.type === 'invite') await acceptInvite(result.token, password);
+        else await updateUser({ password });
+        alert('Kata sandi berhasil disimpan.');
+      }
+      await restore();
+    }).catch(() => alert('Tautan akun tidak valid atau sudah kedaluwarsa. Silakan masuk atau minta tautan baru.'));
+    const unsubscribe = onAuthChange(() => { void restore(); });
+    return () => { cancelled = true; unsubscribe(); };
   }, []);
 
   // AI Ask Handler
@@ -128,8 +154,8 @@ export default function App() {
     }
   }, [searchResults]);
 
-  const handleLogout = () => {
-    storageService.logout();
+  const handleLogout = async () => {
+    await storageService.logout();
     setCurrentUser(null);
     if (activeTab === 'Dashboard Admin') {
       setActiveTab('Home');
@@ -137,7 +163,7 @@ export default function App() {
   };
 
   // Content update from quick edit modal
-  const handleSaveQuickContent = (savedItem: ContentItem) => {
+  const handleSaveQuickContent = async (savedItem: ContentItem) => {
     let updated: ContentItem[];
     const exists = contentList.some((c) => c.id === savedItem.id);
     if (exists) {
@@ -145,8 +171,8 @@ export default function App() {
     } else {
       updated = [savedItem, ...contentList];
     }
+    await storageService.saveContent(updated);
     setContentList(updated);
-    storageService.saveContent(updated);
     if (selectedItem && selectedItem.id === savedItem.id) {
       setSelectedItem(savedItem);
     }
@@ -172,6 +198,7 @@ export default function App() {
       if (!isAdmin) {
         return (
           <div className="glass-card p-12 text-center space-y-4">
+
             <Shield className="w-12 h-12 mx-auto text-gold" />
             <h3 className="text-2xl font-serif font-bold text-white">Akses Khusus Administrator</h3>
             <p className="text-white/60 text-sm max-w-md mx-auto">
@@ -873,6 +900,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col selection:bg-gold/30">
+      {syncError && <div role="status" className="fixed bottom-4 left-4 right-4 z-40 mx-auto max-w-lg rounded-xl border border-gold/40 bg-dark-card p-3 text-center text-sm text-gold shadow-xl">Koneksi online terputus. Menampilkan konten terakhir; mencoba menyambungkan kembali.</div>}
       {/* Sticky Header */}
       <header className="sticky top-0 z-40 bg-dark-bg/85 backdrop-blur-md border-b border-white/5">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
