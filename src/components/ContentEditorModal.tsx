@@ -8,7 +8,7 @@ interface ContentEditorModalProps {
   item: ContentItem | null;
   defaultCategory?: ContentCategory;
   onClose: () => void;
-  onSave: (savedItem: ContentItem) => void;
+  onSave: (savedItem: ContentItem) => void | Promise<void>;
 }
 
 export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
@@ -18,6 +18,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const [category, setCategory] = useState<ContentCategory>(defaultCategory);
   const [title, setTitle] = useState('');
   const [verse, setVerse] = useState('');
@@ -53,8 +54,9 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     if (!title.trim() || !description.trim() || !content.trim()) {
       setError('Judul, ringkasan singkat, dan isi konten wajib diisi.');
       return;
@@ -73,8 +75,11 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
-    onSave(savedItem);
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave(savedItem);
+      onClose();
+    } catch (error) { setError(error instanceof Error ? error.message : "Gagal menyimpan. Silakan coba lagi."); } finally { setIsSaving(false); }
   };
 
   return (
@@ -252,6 +257,7 @@ export const ContentEditorModal: React.FC<ContentEditorModalProps> = ({
               </button>
               <button
                 type="submit"
+                  disabled={isSaving}
                 className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-light text-dark-bg font-bold text-sm flex items-center gap-2 hover:opacity-90 shadow-lg shadow-gold/20 transition-all"
               >
                 <Save className="w-4 h-4" />

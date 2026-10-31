@@ -42,7 +42,6 @@ import { ContentEditorModal } from './ContentEditorModal';
 import { VideoEditorModal } from './VideoEditorModal';
 import { VideoPlayerModal } from './VideoPlayerModal';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
-import { FirebaseConnectCard } from './FirebaseConnectCard';
 import { storageService, getYoutubeThumbnail } from '../services/storageService';
 
 interface AdminDashboardProps {
@@ -165,8 +164,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Ukuran gambar maksimal 5MB.');
+    if (file.size > 4_000_000) {
+      alert('Ukuran gambar maksimal 4 MB.');
       return;
     }
 
@@ -175,7 +174,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       const result = event.target?.result as string;
       if (result) {
         setBannerForm((prev) => ({ ...prev, bannerImage: result }));
-        setBannerNotice('Gambar berhasil diunggah! Jangan lupa klik "Simpan Perubahan Tampilan".');
+        setBannerNotice('Pratinjau gambar siap. Klik "Simpan Perubahan Tampilan".');
         setTimeout(() => setBannerNotice(''), 4000);
       }
     };
@@ -184,8 +183,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   const handleSaveBannerConfig = async (e: React.FormEvent) => {
     e.preventDefault();
-    onUpdateConfig(bannerForm);
-    await storageService.saveConfig(bannerForm);
+    try {
+      const saved = await storageService.saveConfig(bannerForm);
+      onUpdateConfig(saved);
+      setBannerForm(saved);
+    } catch (error) { setBannerNotice(error instanceof Error ? error.message : 'Gagal menyimpan banner.'); return; }
     setBannerNotice('Tampilan aplikasi dan banner berhasil disimpan di server online!');
     setTimeout(() => setBannerNotice(''), 3000);
   };
@@ -196,22 +198,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
     if (exists) {
       updated = content.map((c) => (c.id === savedItem.id ? savedItem : c));
-      setContentNotice(`Konten "${savedItem.title}" berhasil diperbarui.`);
+
     } else {
       updated = [savedItem, ...content];
-      setContentNotice(`Konten baru "${savedItem.title}" berhasil ditambahkan.`);
+
     }
 
-    onUpdateContent(updated);
     await storageService.saveContent(updated);
+    onUpdateContent(updated);
+    setContentNotice(`Konten "${savedItem.title}" berhasil diterbitkan online.`);
     setTimeout(() => setContentNotice(''), 3500);
   };
 
   const handleDeleteItem = async (id: string, title: string) => {
     if (window.confirm(`Apakah Anda yakin ingin menghapus konten "${title}"?`)) {
       const updated = content.filter((c) => c.id !== id);
+      try { await storageService.saveContent(updated); } catch (error) { setContentNotice(error instanceof Error ? error.message : "Gagal menghapus konten."); return; }
       onUpdateContent(updated);
-      await storageService.saveContent(updated);
       setContentNotice(`Konten "${title}" telah dihapus.`);
       setTimeout(() => setContentNotice(''), 3000);
     }
@@ -246,7 +249,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       setVideoNotice(`Video "${videoToDelete.title}" berhasil dihapus dari server online!`);
       setTimeout(() => setVideoNotice(''), 3500);
     } catch (e) {
-      console.error('Error deleting video:', e);
+      setVideoNotice(e instanceof Error ? e.message : 'Gagal menghapus video.');
     } finally {
       setIsDeletingVideo(false);
       setVideoToDelete(null);
@@ -1173,16 +1176,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
       {/* Tab 4: KONEKSI DATABASE ONLINE (NEW) */}
       {activeAdminTab === 'database' && (
         <div className="space-y-8">
-          {/* Card Sambungkan ke Database Online Gratis (Sesuai Gambar Referensi) */}
-          <FirebaseConnectCard
-            onSuccess={async () => {
-              try {
-                const status = await storageService.getDatabaseStatus();
-                setDbStatus(status);
-              } catch (e) {}
-            }}
-          />
-
           {dbNotice && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
@@ -1206,11 +1199,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                     <h3 className="text-xl font-bold font-serif text-white">Status Database Online</h3>
                     <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold uppercase flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                      Aktif & Online
+                      {dbStatus?.status === 'connected' ? 'Terhubung' : 'Belum terhubung'}
                     </span>
                   </div>
                   <p className="text-xs text-white/60">
-                    Pusat penyimpanan online Pelita Rohani untuk sinkronisasi antar perangkat secara real-time.
+                    Pusat penyimpanan online Pelita Rohani untuk sinkronisasi antar perangkat setiap 5 detik.
                   </p>
                 </div>
               </div>
@@ -1292,7 +1285,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   <span>Kecepatan Ping</span>
                 </div>
                 <p className="text-sm font-bold text-emerald-400 font-mono">
-                  {dbStatus?.latencyMs || 6} ms (Sangat Cepat)
+                  {dbStatus?.status === 'connected' ? `${dbStatus.latencyMs} ms` : '—'}
                 </p>
               </div>
 
@@ -1314,189 +1307,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <p className="text-xs font-semibold text-white/90 truncate">
                   {dbStatus?.lastSync
                     ? new Date(dbStatus.lastSync).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-                    : 'Aktif'}
+                    : 'Belum tersinkron'}
                 </p>
               </div>
             </div>
           </div>
 
           {/* Database Configuration Form */}
-          <form onSubmit={handleSaveDatabaseConfig} className="glass-card p-6 md:p-8 space-y-6">
-            <div className="space-y-1 pb-4 border-b border-white/10">
-              <h3 className="text-xl font-bold font-serif text-white">Hubungkan / Ubah Database Online</h3>
-              <p className="text-xs text-white/60">
-                Pilih penyedia database online yang ingin Anda hubungkan (Server Cloud Bawaan, Supabase, Firebase, atau REST API Kustom).
-              </p>
-            </div>
-
-            {/* Provider Selector Cards */}
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold text-white/80">
-                1. Pilih Jenis Database Online:
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                  {
-                    id: 'server_api',
-                    name: 'Cloud Server Bawaan',
-                    desc: 'Database bawaan server live, terhubung otomatis',
-                    recommended: true,
-                  },
-                  {
-                    id: 'supabase',
-                    name: 'Supabase / PostgreSQL',
-                    desc: 'Database relasional SQL cloud',
-                    recommended: false,
-                  },
-                  {
-                    id: 'firebase',
-                    name: 'Firebase Firestore',
-                    desc: 'Database dokumen NoSQL Google Cloud',
-                    recommended: false,
-                  },
-                  {
-                    id: 'custom_rest',
-                    name: 'Custom REST API / Webhook',
-                    desc: 'Endpoint API database kustom Anda',
-                    recommended: false,
-                  },
-                ].map((prov) => (
-                  <button
-                    key={prov.id}
-                    type="button"
-                    onClick={() => setDbConfig({ ...dbConfig, provider: prov.id as DatabaseProvider })}
-                    className={`p-4 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      dbConfig.provider === prov.id
-                        ? 'border-gold bg-gold/10 text-white shadow-lg shadow-gold/10 ring-1 ring-gold/30'
-                        : 'border-white/10 bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="space-y-1">
-                      {prov.recommended && (
-                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-bold px-2 py-0.5 rounded-full inline-block mb-1">
-                          Aktif Saat Ini
-                        </span>
-                      )}
-                      <h4 className="text-sm font-bold text-white">{prov.name}</h4>
-                      <p className="text-xs text-white/50">{prov.desc}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Details for External Database if chosen */}
-            {dbConfig.provider !== 'server_api' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="space-y-4 pt-4 border-t border-white/10"
-              >
-                <div>
-                  <label className="block text-xs font-semibold text-white/80 mb-1">
-                    URL Endpoint / Host Database <span className="text-gold">*</span>
-                  </label>
-                  <div className="relative">
-                    <Globe className="w-4 h-4 text-white/40 absolute left-3.5 top-3.5" />
-                    <input
-                      type="url"
-                      value={dbConfig.endpointUrl}
-                      onChange={(e) => setDbConfig({ ...dbConfig, endpointUrl: e.target.value })}
-                      placeholder={
-                        dbConfig.provider === 'supabase'
-                          ? 'https://your-project.supabase.co/rest/v1'
-                          : dbConfig.provider === 'firebase'
-                          ? 'https://firestore.googleapis.com/v1/projects/your-project/databases/(default)/documents'
-                          : 'https://api.yourdatabase.com/v1'
-                      }
-                      className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-white/80 mb-1">
-                      API Key / Anon Token Akses
-                    </label>
-                    <div className="relative">
-                      <Link2 className="w-4 h-4 text-white/40 absolute left-3.5 top-3.5" />
-                      <input
-                        type={showApiKey ? 'text' : 'password'}
-                        value={dbConfig.apiKey}
-                        onChange={(e) => setDbConfig({ ...dbConfig, apiKey: e.target.value })}
-                        placeholder="eyJhbGciOi..."
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-gold/50 font-mono"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowApiKey(!showApiKey)}
-                        className="absolute right-3.5 top-3.5 text-white/40 hover:text-white cursor-pointer"
-                      >
-                        {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-white/80 mb-1">
-                      Nama Database / Schema
-                    </label>
-                    <input
-                      type="text"
-                      value={dbConfig.databaseName}
-                      onChange={(e) => setDbConfig({ ...dbConfig, databaseName: e.target.value })}
-                      placeholder="pelita_rohani_db"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-gold/50"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Auto-Sync Toggle */}
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-bold text-white">Sinkronisasi Otomatis</h4>
-                <p className="text-xs text-white/50">
-                  Sinkronkan konten dan perubahan secara instan setiap kali Anda mengedit aplikasi.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDbConfig({ ...dbConfig, autoSync: !dbConfig.autoSync })}
-                className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${
-                  dbConfig.autoSync ? 'bg-gold' : 'bg-white/20'
-                }`}
-              >
-                <div
-                  className={`w-5 h-5 rounded-full bg-dark-bg absolute top-1 transition-transform ${
-                    dbConfig.autoSync ? 'right-1' : 'left-1'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-white/10">
-              <button
-                type="button"
-                onClick={handleTestDatabase}
-                disabled={isTestingDb}
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-bold text-xs flex items-center gap-2 cursor-pointer transition-colors"
-              >
-                {isTestingDb ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5 text-gold" />}
-                <span>Uji Koneksi</span>
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-gold to-gold-light text-dark-bg font-bold text-sm flex items-center gap-2 hover:opacity-90 shadow-lg shadow-gold/20 transition-all cursor-pointer"
-              >
-                <Save className="w-4 h-4" />
-                <span>Simpan Pengaturan Database</span>
-              </button>
-            </div>
-          </form>
+          <p className="text-sm text-white/70">Penyimpanan online aktif otomatis. Konten yang berhasil diterbitkan tersedia bagi semua pengguna dan perangkat.</p>
         </div>
       )}
 

@@ -22,7 +22,7 @@ interface VideoEditorModalProps {
   isOpen: boolean;
   video: VideoItem | null;
   onClose: () => void;
-  onSave: (video: VideoItem) => void;
+  onSave: (video: VideoItem) => void | Promise<void>;
   onDelete?: (video: VideoItem) => void;
 }
 
@@ -41,6 +41,7 @@ export const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
   onSave,
   onDelete,
 }) => {
+  const [isSaving, setIsSaving] = useState(false);
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [extractedId, setExtractedId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
@@ -104,8 +105,9 @@ export const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
     setErrorMsg('');
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSaving) return;
     const finalId = extractedId || extractYouTubeId(youtubeUrl);
     
     if (!finalId) {
@@ -138,8 +140,11 @@ export const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
-    onSave(savedVideo);
-    onClose();
+    setIsSaving(true);
+    try {
+      await onSave(savedVideo);
+      onClose();
+    } catch (error) { setErrorMsg(error instanceof Error ? error.message : "Gagal menyimpan. Silakan coba lagi."); } finally { setIsSaving(false); }
   };
 
   if (!isOpen) return null;
@@ -442,6 +447,7 @@ export const VideoEditorModal: React.FC<VideoEditorModalProps> = ({
                 </button>
                 <button
                   type="submit"
+                  disabled={isSaving}
                   className="px-6 py-2.5 rounded-xl bg-gold hover:bg-gold-light text-dark-bg font-bold text-xs flex items-center gap-2 transition-colors shadow-lg shadow-gold/20 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
