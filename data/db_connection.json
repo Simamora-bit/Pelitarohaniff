@@ -1,0 +1,9 @@
+{
+  "provider": "server_api",
+  "endpointUrl": "",
+  "apiKey": "",
+  "databaseName": "pelita_rohani_cloud_db",
+  "autoSync": true,
+  "status": "connected",
+  "lastSync": "2026-10-31T07:50:15.791Z"
+}

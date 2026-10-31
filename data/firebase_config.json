@@ -1,0 +1,12 @@
+{
+  "connected": true,
+  "projectId": "pelita-rohani-cloud",
+  "databaseURL": "https://pelita-rohani-cloud-default-rtdb.firebaseio.com",
+  "apiKey": "AIzaSyPelitaRohaniAutoConnectLiveKey",
+  "authDomain": "pelita-rohani-cloud.firebaseapp.com",
+  "storageBucket": "pelita-rohani-cloud.appspot.com",
+  "messagingSenderId": "772819401823",
+  "appId": "1:772819401823:web:live",
+  "rawConfig": "{\n  \"apiKey\": \"AIzaSyPelitaRohaniAutoConnectLiveKey\",\n  \"authDomain\": \"pelita-rohani-cloud.firebaseapp.com\",\n  \"projectId\": \"pelita-rohani-cloud\",\n  \"databaseURL\": \"https://pelita-rohani-cloud-default-rtdb.firebaseio.com\"\n}",
+  "lastSync": "2026-10-31T08:45:06.348Z"
+}

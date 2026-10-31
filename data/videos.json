@@ -1,0 +1,55 @@
+[
+  {
+    "id": "vid-1793438158622",
+    "title": "Khotbah Hidup Damai",
+    "youtubeUrl": "https://youtu.be/kJQP7kiw5Fk",
+    "youtubeId": "kJQP7kiw5Fk",
+    "category": "Khotbah",
+    "speaker": "Ps. Philip Mantofa",
+    "verse": "Filipi 4:6-7",
+    "description": "Khotbah tentang damai sejahtera Allah yang melampaui segala akal dan memelihara hati dan pikiran.",
+    "duration": "",
+    "isFeatured": false,
+    "createdAt": "2026-10-31T09:15:58.622Z",
+    "updatedAt": "2026-10-31T09:15:58.622Z"
+  },
+  {
+    "id": "vid-1",
+    "title": "Waktu Tuhan Pasti yang Terbaik - Pujian & Penyembahan Rohani",
+    "youtubeUrl": "https://www.youtube.com/watch?v=y5r_qQjH8G4",
+    "youtubeId": "y5r_qQjH8G4",
+    "category": "Pujian",
+    "speaker": "NDC Worship / Symphony Worship",
+    "verse": "Pengkhotbah 3:11",
+    "description": "Lagu pujian dan penyembahan yang meneguhkan hati, mengingatkan kita bahwa Tuhan menjadikan segala sesuatu indah pada waktu-Nya. Tetaplah berharap dan berserah penuh kepada-Nya.",
+    "duration": "5:42",
+    "isFeatured": true,
+    "createdAt": "2026-10-31T09:15:49.200Z"
+  },
+  {
+    "id": "vid-2",
+    "title": "Khotbah: Jangan Takut dan Kuatkan Hatimu di Tengah Badai Hidup",
+    "youtubeUrl": "https://www.youtube.com/watch?v=kJQP7kiw5Fk",
+    "youtubeId": "kJQP7kiw5Fk",
+    "category": "Khotbah",
+    "speaker": "Ps. Philip Mantofa",
+    "verse": "Yesaya 41:10",
+    "description": "Renungan dan pesan firman Tuhan yang mendalam mengenai bagaimana orang beriman bangkit melewati masa-masa sukar dengan berpegang pada tangan Tuhan yang setia dan berkuasa.",
+    "duration": "28:15",
+    "isFeatured": true,
+    "createdAt": "2026-10-31T09:15:49.200Z"
+  },
+  {
+    "id": "vid-3",
+    "title": "Tanda-Tanda Akhir Zaman & Kesiapan Hati Menyongsong Kedatangan Kristus",
+    "youtubeUrl": "https://www.youtube.com/watch?v=9bZkp7q19f0",
+    "youtubeId": "9bZkp7q19f0",
+    "category": "Akhir Zaman",
+    "speaker": "Ps. Gilbert Lumoindong",
+    "verse": "Matius 24:42",
+    "description": "Penjelasan Alkitabiah tentang nubuatan akhir zaman, pentingnya menjaga kekudusan hidup, terus berdoa, dan setia sampai akhir dalam melayani Tuhan.",
+    "duration": "32:40",
+    "isFeatured": false,
+    "createdAt": "2026-10-31T09:15:49.200Z"
+  }
+]
